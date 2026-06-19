@@ -1,0 +1,4 @@
+kafka-python-ng>=2.2.2
+happybase>=1.2.0
+thrift>=0.16.0
+pyspark>=3.3.2

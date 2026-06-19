@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  # Zookeeper for Kafka and HBase
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.3.0
+    container_name: bigdata-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  # Apache Kafka Broker
+  kafka:
+    image: confluentinc/cp-kafka:7.3.0
+    container_name: bigdata-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+
+  # Apache HBase (Standalone mode with Thrift server enabled)
+  hbase:
+    image: harisekhon/hbase:latest
+    container_name: bigdata-hbase
+    ports:
+      - "16010:16010" # HBase Web UI
+      - "9090:9090"   # Thrift Server (used by happybase Python library)
+      - "16000:16000" # RegionServer
+      - "16030:16030" # RegionServer Web UI
+    environment:
+      - HBASE_CONFIG_hbase_cluster_distributed=false
+    # We ensure Thrift server is started along with HBase
+    command: >
+      bash -c "/entrypoint.sh & 
+      sleep 10 && 
+      hbase thrift start -p 9090 & 
+      wait"
+
+  # Spark Master
+  spark-master:
+    image: bitnami/spark:3.3.2
+    container_name: bigdata-spark-master
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+    ports:
+      - "8080:8080" # Spark Master Web UI
+      - "7077:7077" # Spark Master port
+
+  # Spark Worker
+  spark-worker:
+    image: bitnami/spark:3.3.2
+    container_name: bigdata-spark-worker
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_CORES=1
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+    ports:
+      - "8081:8081" # Spark Worker Web UI
