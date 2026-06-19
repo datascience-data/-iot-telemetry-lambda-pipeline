@@ -143,3 +143,5 @@ En bases NoSQL como HBase, el diseño del RowKey es crucial para evitar el probl
 ### Ventajas de este diseño:
 1. **Consultas por Rangos**: Permite a la Serving Layer recuperar las métricas agregadas históricas de un sensor específico con búsquedas de tipo prefijo (`PrefixScan`) extremadamente veloces.
 2. **Escritura Eficiente**: Distribuye de forma homogénea los datos a lo largo de las regiones de HBase gracias al ID del sensor como prefijo.
+
+<img width="986" height="1030" alt="image" src="https://github.com/user-attachments/assets/7ced47b1-ad6a-45e7-9820-9535fc535f0b" />
